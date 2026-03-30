@@ -4,9 +4,10 @@ import {
   HardHat, ClipboardCheck, Factory, Award, 
   Building2, Users, History, Globe2, FileText, 
   TrendingUp, ShieldCheck, Briefcase, HeartHandshake,
-  ExternalLink, ArrowRight, Calendar, Newspaper, Image as ImageIcon
+  ExternalLink, ArrowRight, Calendar, Newspaper, Image as ImageIcon,
+  BarChart3, Download, Search, Filter, ChevronRight
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   BrowserRouter as Router, 
   Routes, 
@@ -15,6 +16,11 @@ import {
   useLocation,
   useNavigate
 } from "react-router-dom";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Legend, AreaChart, Area
+} from 'recharts';
+import { cn } from "./lib/utils";
 
 // --- Types ---
 interface NavItem {
@@ -70,24 +76,32 @@ const LANGUAGES = ["繁體中文", "English", "日本語"];
 
 // --- Helper Components ---
 
-const SectionHeader = ({ title, subtitle, light = false }: { title: string, subtitle?: string, light?: boolean }) => (
-  <div className="mb-12">
-    <h2 className={`text-3xl font-bold mb-4 ${light ? 'text-white' : 'text-gray-900'}`}>{title}</h2>
-    {subtitle && <p className={`text-sm tracking-widest uppercase font-semibold ${light ? 'text-blue-300' : 'text-blue-700'}`}>{subtitle}</p>}
-    <div className={`w-12 h-1 mt-4 ${light ? 'bg-blue-400' : 'bg-blue-700'}`}></div>
+const SectionHeader = ({ title, subtitle, light = false, center = false }: { title: string, subtitle?: string, light?: boolean, center?: boolean }) => (
+  <div className={cn("mb-12", center && "text-center")}>
+    <p className={cn("text-xs tracking-[0.2em] uppercase font-bold mb-3", light ? 'text-blue-400' : 'text-blue-700')}>
+      {subtitle}
+    </p>
+    <h2 className={cn("text-3xl md:text-4xl font-bold mb-6", light ? 'text-white' : 'text-gray-900')}>
+      {title}
+    </h2>
+    <div className={cn("w-16 h-1", light ? 'bg-blue-400' : 'bg-blue-700', center && "mx-auto")}></div>
   </div>
 );
 
 const PageHero = ({ title, subtitle, image }: { title: string, subtitle: string, image: string }) => (
-  <section className="relative h-[40vh] min-h-[300px] flex items-center bg-gray-900 pt-20 overflow-hidden">
+  <section className="relative h-[45vh] min-h-[350px] flex items-center bg-gray-900 pt-20 overflow-hidden">
     <div className="absolute inset-0 z-0">
-      <img src={image} alt={title} className="w-full h-full object-cover opacity-50" referrerPolicy="no-referrer" />
-      <div className="absolute inset-0 bg-blue-900/40" />
+      <img src={image} alt={title} className="w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-900/40 via-blue-900/20 to-gray-900/80" />
     </div>
     <div className="relative z-10 max-w-7xl mx-auto px-4 w-full">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{title}</h1>
-        <p className="text-blue-100 text-lg max-w-2xl">{subtitle}</p>
+      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">{title}</h1>
+        <div className="flex items-center gap-4 text-blue-100/80 text-sm font-medium uppercase tracking-widest">
+          <Link to="/" className="hover:text-white transition-colors">Home</Link>
+          <ChevronRight size={14} />
+          <span>{title}</span>
+        </div>
       </motion.div>
     </div>
   </section>
@@ -98,45 +112,59 @@ const PageHero = ({ title, subtitle, image }: { title: string, subtitle: string,
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [lang, setLang] = useState("繁體中文");
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     setIsOpen(false);
+    window.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center rounded-sm">
-            <span className="text-white font-bold text-xl">CYH</span>
+    <header className={cn(
+      "fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b",
+      scrolled ? "bg-white/95 backdrop-blur-md h-20 border-gray-100 shadow-sm" : "bg-transparent h-24 border-transparent"
+    )}>
+      <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3">
+          <div className={cn(
+            "w-12 h-12 flex items-center justify-center rounded-sm transition-all duration-300",
+            scrolled ? "bg-blue-900" : "bg-white"
+          )}>
+            <span className={cn("font-bold text-2xl", scrolled ? "text-white" : "text-blue-900")}>CYH</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-gray-900 leading-tight tracking-tight">騏億鑫科技</span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-medium">ChiYiHsin Technology</span>
+            <span className={cn("font-bold text-xl leading-tight tracking-tight transition-colors", scrolled ? "text-gray-900" : "text-white")}>騏億鑫科技</span>
+            <span className={cn("text-[10px] uppercase tracking-[0.2em] font-semibold transition-colors", scrolled ? "text-gray-500" : "text-white/70")}>ChiYiHsin Technology</span>
           </div>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-10">
           {NAV_ITEMS.map((item) => (
             <div key={item.label} className="relative group">
               <Link 
                 to={item.href} 
-                className={`text-sm font-medium transition-colors flex items-center gap-1 py-8 ${
-                  location.pathname === item.href ? 'text-blue-700' : 'text-gray-700 hover:text-blue-700'
-                }`}
+                className={cn(
+                  "text-sm font-bold transition-all flex items-center gap-1 py-8 relative after:absolute after:bottom-6 after:left-0 after:w-0 after:h-0.5 after:bg-blue-700 after:transition-all group-hover:after:w-full",
+                  scrolled ? "text-gray-700 hover:text-blue-700" : "text-white hover:text-blue-400"
+                )}
               >
                 {item.label}
                 {item.children && <ChevronDown size={14} className="opacity-50" />}
               </Link>
               {item.children && (
-                <div className="absolute top-full right-0 w-48 bg-white border border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2">
+                <div className="absolute top-full right-0 w-56 bg-white border border-gray-100 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 py-3 rounded-sm">
                   {item.children.map((child) => (
                     <Link 
                       key={child.label} 
                       to={child.href}
-                      className="block px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-blue-700"
+                      className="block px-6 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-700 transition-colors"
                     >
                       {child.label}
                     </Link>
@@ -147,17 +175,20 @@ const Header = () => {
           ))}
 
           <div className="relative group ml-4">
-            <button className="flex items-center gap-2 text-xs font-semibold text-gray-500 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-50">
+            <button className={cn(
+              "flex items-center gap-2 text-xs font-bold border px-4 py-2 rounded-full transition-all",
+              scrolled ? "text-gray-600 border-gray-200 hover:bg-gray-50" : "text-white border-white/30 hover:bg-white/10"
+            )}>
               <Globe size={14} />
               {lang}
               <ChevronDown size={12} />
             </button>
-            <div className="absolute top-full right-0 mt-2 w-32 bg-white border border-gray-100 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all py-1">
+            <div className="absolute top-full right-0 mt-2 w-36 bg-white border border-gray-100 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all py-2 rounded-sm">
               {LANGUAGES.map((l) => (
                 <button 
                   key={l}
                   onClick={() => setLang(l)}
-                  className="w-full text-left px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-blue-700"
+                  className="w-full text-left px-6 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-blue-700 transition-colors"
                 >
                   {l}
                 </button>
@@ -166,27 +197,36 @@ const Header = () => {
           </div>
         </nav>
 
-        <button className="lg:hidden p-2 text-gray-600" onClick={() => setIsOpen(!isOpen)}>
-          {isOpen ? <X /> : <Menu />}
+        <button className={cn("lg:hidden p-2 transition-colors", scrolled ? "text-gray-600" : "text-white")} onClick={() => setIsOpen(!isOpen)}>
+          {isOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-white border-t border-gray-100 overflow-hidden"
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            className="fixed inset-0 bg-white z-[60] lg:hidden flex flex-col"
           >
-            <div className="py-4 px-4 flex flex-col gap-4">
+            <div className="h-24 flex items-center justify-between px-4 border-b border-gray-100">
+              <Link to="/" className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center rounded-sm">
+                  <span className="text-white font-bold text-xl">CYH</span>
+                </div>
+                <span className="font-bold text-xl text-gray-900">騏億鑫科技</span>
+              </Link>
+              <button onClick={() => setIsOpen(false)} className="p-2 text-gray-600"><X size={32} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto py-8 px-6">
               {NAV_ITEMS.map((item) => (
-                <div key={item.label}>
-                  <Link to={item.href} className="text-base font-bold text-gray-800 block mb-2">{item.label}</Link>
+                <div key={item.label} className="mb-8">
+                  <Link to={item.href} className="text-2xl font-bold text-gray-900 block mb-4">{item.label}</Link>
                   {item.children && (
-                    <div className="pl-4 flex flex-col gap-2 border-l-2 border-gray-100">
+                    <div className="pl-6 flex flex-col gap-4 border-l-2 border-blue-100">
                       {item.children.map((child) => (
-                        <Link key={child.label} to={child.href} className="text-sm text-gray-500">{child.label}</Link>
+                        <Link key={child.label} to={child.href} className="text-lg font-medium text-gray-500 hover:text-blue-700">{child.label}</Link>
                       ))}
                     </div>
                   )}
@@ -201,23 +241,28 @@ const Header = () => {
 };
 
 const Footer = () => (
-  <footer className="bg-gray-900 text-white pt-20 pb-10">
+  <footer className="bg-gray-950 text-white pt-24 pb-12">
     <div className="max-w-7xl mx-auto px-4">
-      <div className="grid lg:grid-cols-4 gap-12 mb-16">
-        <div>
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-blue-700 flex items-center justify-center rounded-sm">
-              <span className="text-white font-bold text-lg">CYH</span>
+      <div className="grid lg:grid-cols-4 gap-16 mb-20">
+        <div className="col-span-1 lg:col-span-1">
+          <Link to="/" className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-blue-700 flex items-center justify-center rounded-sm">
+              <span className="text-white font-bold text-xl">CYH</span>
             </div>
-            <span className="font-bold text-lg tracking-tight">騏億鑫科技</span>
-          </div>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            高科技廠房廠務系統工程整體評估設計、施作，以及廠務系統工程相關材料之生產、組裝及銷售。
+            <span className="font-bold text-2xl tracking-tight">騏億鑫科技</span>
+          </Link>
+          <p className="text-gray-400 text-sm leading-relaxed mb-8">
+            致力於高科技廠房廠務系統工程，提供專業、穩重、創新的全方位解決方案。
           </p>
+          <div className="flex gap-4">
+            {/* Social icons placeholder */}
+            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer"><Globe size={18} /></div>
+            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-blue-700 transition-colors cursor-pointer"><Mail size={18} /></div>
+          </div>
         </div>
         <div>
-          <h4 className="font-bold mb-6 text-gray-200">關於我們</h4>
-          <ul className="space-y-3 text-sm text-gray-400">
+          <h4 className="text-lg font-bold mb-8 text-white relative after:absolute after:bottom-[-12px] after:left-0 after:w-8 after:h-0.5 after:bg-blue-700">關於我們</h4>
+          <ul className="space-y-4 text-sm text-gray-400">
             <li><Link to="/about#profile" className="hover:text-white transition-colors">公司簡介</Link></li>
             <li><Link to="/about#org" className="hover:text-white transition-colors">組織架構</Link></li>
             <li><Link to="/about#history" className="hover:text-white transition-colors">沿革與發展</Link></li>
@@ -225,33 +270,37 @@ const Footer = () => (
           </ul>
         </div>
         <div>
-          <h4 className="font-bold mb-6 text-gray-200">服務項目</h4>
-          <ul className="space-y-3 text-sm text-gray-400">
+          <h4 className="text-lg font-bold mb-8 text-white relative after:absolute after:bottom-[-12px] after:left-0 after:w-8 after:h-0.5 after:bg-blue-700">服務項目</h4>
+          <ul className="space-y-4 text-sm text-gray-400">
             <li><Link to="/services#eng-services" className="hover:text-white transition-colors">工程服務</Link></li>
             <li><Link to="/services#track-record" className="hover:text-white transition-colors">工程實績</Link></li>
             <li><Link to="/services#certs" className="hover:text-white transition-colors">專業證照與認證</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="font-bold mb-6 text-gray-200">聯絡資訊</h4>
-          <ul className="space-y-4 text-sm text-gray-400">
-            <li className="flex items-start gap-3">
-              <MapPin size={18} className="text-blue-500 shrink-0" />
-              <span>台中市大雅區中清路四段...</span>
+          <h4 className="text-lg font-bold mb-8 text-white relative after:absolute after:bottom-[-12px] after:left-0 after:w-8 after:h-0.5 after:bg-blue-700">聯絡資訊</h4>
+          <ul className="space-y-6 text-sm text-gray-400">
+            <li className="flex items-start gap-4">
+              <MapPin size={20} className="text-blue-500 shrink-0 mt-1" />
+              <span>台中市大雅區中清路四段... (範例地址)</span>
             </li>
-            <li className="flex items-center gap-3">
-              <Phone size={18} className="text-blue-500 shrink-0" />
+            <li className="flex items-center gap-4">
+              <Phone size={20} className="text-blue-500 shrink-0" />
               <span>04-25670993</span>
             </li>
-            <li className="flex items-center gap-3">
-              <Mail size={18} className="text-blue-500 shrink-0" />
+            <li className="flex items-center gap-4">
+              <Mail size={20} className="text-blue-500 shrink-0" />
               <span>cyh.mis@cyhco.com.tw</span>
             </li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 pt-8 text-center text-[10px] text-gray-500 uppercase tracking-widest">
-        <p>© 2026 騏億鑫科技股份有限公司 CHIYIHISIN TECHNOLOGY CO., LTD. ALL RIGHTS RESERVED.</p>
+      <div className="border-t border-white/5 pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-[11px] text-gray-500 uppercase tracking-[0.2em] font-bold">
+        <p>© 2026 騏億鑫科技股份有限公司 CHIYIHISIN TECHNOLOGY CO., LTD.</p>
+        <div className="flex gap-8">
+          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+        </div>
       </div>
     </div>
   </footer>
@@ -261,75 +310,103 @@ const Footer = () => (
 
 const HomePage = () => (
   <main>
-    <section className="relative h-[85vh] flex items-center bg-gray-900 pt-20 overflow-hidden">
+    <section className="relative h-screen flex items-center bg-gray-950 overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <img src="https://picsum.photos/seed/factory/1920/1080" alt="Hero" className="w-full h-full object-cover opacity-40" referrerPolicy="no-referrer" />
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/60 to-transparent" />
+        <img src="https://picsum.photos/seed/industrial/1920/1080" alt="Hero" className="w-full h-full object-cover opacity-50" referrerPolicy="no-referrer" />
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/40 to-transparent" />
       </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 w-full">
-        <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} className="max-w-2xl">
-          <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight mb-6">
-            高科技廠房<br /><span className="text-blue-400">廠務系統工程</span>專家
+        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }} className="max-w-3xl">
+          <p className="text-blue-400 font-bold tracking-[0.4em] uppercase mb-6 text-sm">Professional Engineering Solutions</p>
+          <h1 className="text-5xl md:text-8xl font-bold text-white leading-[1.1] mb-8 tracking-tight">
+            高科技廠房<br /><span className="text-blue-500">廠務系統</span>專家
           </h1>
-          <p className="text-xl text-gray-200 mb-10 leading-relaxed">
-            提供整體評估設計、施作，以及廠務系統工程相關材料之生產、組裝及銷售。
+          <p className="text-xl text-gray-300 mb-12 leading-relaxed max-w-2xl font-medium">
+            騏億鑫科技致力於提供整體評估設計、施作，以及廠務系統工程相關材料之生產、組裝及銷售。
           </p>
-          <div className="flex flex-wrap gap-4">
-            <Link to="/services" className="bg-blue-700 hover:bg-blue-800 text-white px-10 py-4 rounded-sm font-bold transition-all">了解服務項目</Link>
-            <Link to="/about" className="bg-white/10 hover:bg-white/20 text-white backdrop-blur-md px-10 py-4 rounded-sm font-bold border border-white/30 transition-all">關於騏億鑫</Link>
+          <div className="flex flex-wrap gap-6">
+            <Link to="/services" className="group bg-blue-700 hover:bg-blue-600 text-white px-10 py-5 rounded-sm font-bold transition-all flex items-center gap-3">
+              了解服務項目 <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+            </Link>
+            <Link to="/about" className="bg-white/5 hover:bg-white/10 text-white backdrop-blur-md px-10 py-5 rounded-sm font-bold border border-white/20 transition-all">
+              關於騏億鑫
+            </Link>
           </div>
         </motion.div>
       </div>
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce text-white/30 hidden md:block">
+        <ChevronDown size={32} />
+      </div>
     </section>
 
-    <section className="py-24 bg-white">
+    {/* Acter Style Layout - Clean & Professional */}
+    <section className="py-32 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid lg:grid-cols-2 gap-20 items-center">
-          <div className="relative">
-            <img src="https://picsum.photos/seed/tech/800/600" alt="About" className="rounded-sm shadow-2xl" referrerPolicy="no-referrer" />
-            <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-blue-900 hidden md:flex items-center justify-center p-8 text-white text-center">
-              <p className="text-sm font-bold tracking-widest uppercase">專業 穩重 創新 誠信</p>
+        <div className="grid lg:grid-cols-12 gap-16 items-center">
+          <div className="lg:col-span-7 relative">
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-50 -z-10"></div>
+            <img src="https://picsum.photos/seed/engineering/1200/800" alt="Engineering" className="rounded-sm shadow-3xl w-full" referrerPolicy="no-referrer" />
+            <div className="absolute -bottom-12 -right-12 bg-blue-900 p-12 text-white hidden xl:block rounded-sm">
+              <p className="text-5xl font-bold mb-2">10+</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-300">Years of Excellence</p>
             </div>
           </div>
-          <div>
-            <SectionHeader title="關於騏億鑫科技" subtitle="ABOUT CHIYIHISIN" />
-            <p className="text-gray-600 mb-8 text-lg leading-relaxed">
-              騏億鑫科技股份有限公司致力於高科技廠房廠務系統工程。我們提供從初步評估、細部設計到現場施作的一站式服務。
+          <div className="lg:col-span-5">
+            <SectionHeader title="致力於卓越工程" subtitle="COMMITMENT TO EXCELLENCE" />
+            <p className="text-gray-600 mb-10 text-lg leading-relaxed">
+              我們深知高科技產業對精準與穩定的嚴苛要求。騏億鑫科技以專業的技術團隊為核心，為半導體、面板、生技等產業提供最可靠的廠務工程服務。
             </p>
-            <div className="grid grid-cols-2 gap-8 mb-10">
-              <div className="flex gap-4 items-start">
-                <div className="w-10 h-10 bg-blue-50 flex items-center justify-center rounded-full text-blue-700 shrink-0"><ShieldCheck size={20} /></div>
-                <div><h4 className="font-bold text-gray-900">專業技術</h4><p className="text-xs text-gray-500">Professional Tech</p></div>
-              </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-10 h-10 bg-blue-50 flex items-center justify-center rounded-full text-blue-700 shrink-0"><TrendingUp size={20} /></div>
-                <div><h4 className="font-bold text-gray-900">穩健經營</h4><p className="text-xs text-gray-500">Steady Growth</p></div>
-              </div>
+            <div className="space-y-8 mb-12">
+              {[
+                { title: "專業技術團隊", desc: "擁有豐富經驗的工程師與技術人員。" },
+                { title: "嚴謹品質控管", desc: "符合國際標準的施工作業流程。" },
+                { title: "創新解決方案", desc: "針對客戶需求提供客製化優化方案。" }
+              ].map((item, i) => (
+                <div key={i} className="flex gap-6 items-start">
+                  <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0 font-bold">0{i+1}</div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-2">{item.title}</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <Link to="/about" className="inline-flex items-center gap-2 text-blue-700 font-bold hover:gap-4 transition-all">查看更多公司資訊 <ArrowRight size={18} /></Link>
+            <Link to="/about" className="group inline-flex items-center gap-3 text-blue-700 font-bold hover:gap-5 transition-all">
+              了解更多公司資訊 <ArrowRight size={20} />
+            </Link>
           </div>
         </div>
       </div>
     </section>
 
-    <section className="py-24 bg-gray-50">
+    <section className="py-32 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <SectionHeader title="服務項目" subtitle="OUR SERVICES" />
+        <div className="flex flex-col md:flex-row justify-between items-end mb-20">
+          <SectionHeader title="核心服務項目" subtitle="CORE SERVICES" />
+          <Link to="/services" className="mb-12 text-sm font-bold text-blue-700 border-b-2 border-blue-700 pb-1 hover:text-blue-900 hover:border-blue-900 transition-colors">查看所有服務</Link>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
-            { title: "工程服務", icon: <HardHat size={32} />, desc: "高科技廠房整體評估與設計施作" },
-            { title: "工程實績", icon: <ClipboardCheck size={32} />, desc: "豐富的產業合作經驗與成功案例" },
-            { title: "材料生產", icon: <Factory size={32} />, desc: "廠務系統相關材料之生產與組裝" },
-            { title: "專業認證", icon: <Award size={32} />, desc: "具備多項國際專業證照與認證" },
-          ].map((s) => (
-            <div key={s.title} className="bg-white p-10 rounded-sm shadow-sm hover:shadow-xl transition-all border-b-4 border-transparent hover:border-blue-700">
-              <div className="text-blue-700 mb-6">{s.icon}</div>
-              <h3 className="text-xl font-bold mb-4">{s.title}</h3>
-              <p className="text-gray-500 text-sm leading-relaxed mb-6">{s.desc}</p>
-              <Link to="/services" className="text-xs font-bold text-blue-700 flex items-center gap-1">了解更多 <ArrowRight size={12} /></Link>
-            </div>
+            { title: "工程服務", icon: <HardHat size={40} />, desc: "高科技廠房整體評估與設計施作，包含水、電、氣、化等系統。" },
+            { title: "工程實績", icon: <ClipboardCheck size={40} />, desc: "豐富的產業合作經驗，涵蓋國內外知名半導體與光電大廠。" },
+            { title: "材料生產", icon: <Factory size={40} />, desc: "自主研發與生產高品質廠務系統相關材料，確保工程品質。" },
+            { title: "專業認證", icon: <Award size={40} />, desc: "具備多項國際 ISO 認證與專業工程執照，品質有保障。" },
+          ].map((s, i) => (
+            <motion.div 
+              key={s.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              viewport={{ once: true }}
+              className="bg-white p-12 rounded-sm shadow-sm hover:shadow-2xl transition-all group border-t-4 border-transparent hover:border-blue-700"
+            >
+              <div className="text-blue-700 mb-8 group-hover:scale-110 transition-transform duration-500">{s.icon}</div>
+              <h3 className="text-2xl font-bold mb-6 text-gray-900">{s.title}</h3>
+              <p className="text-gray-500 text-sm leading-relaxed mb-8">{s.desc}</p>
+              <Link to="/services" className="inline-flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-widest group-hover:gap-4 transition-all">
+                Learn More <ArrowRight size={14} />
+              </Link>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -349,90 +426,99 @@ const AboutPage = () => {
 
   return (
     <main>
-      <PageHero title="關於騏億鑫" subtitle="專業、穩重、創新的高科技廠務工程專家" image="https://picsum.photos/seed/about/1920/600" />
+      <PageHero title="關於騏億鑫" subtitle="專業、穩重、創新的高科技廠務工程專家" image="https://picsum.photos/seed/about-hero/1920/600" />
       
-      <section id="profile" className="py-24 bg-white">
+      <section id="profile" className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
             <div>
               <SectionHeader title="公司簡介" subtitle="COMPANY PROFILE" />
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                騏億鑫科技股份有限公司專注於高科技廠房廠務系統工程。我們提供從整體評估、設計、施作，到相關材料的生產與銷售。
-                以專業的技術團隊為核心，致力於為半導體、面板、生技等高科技產業提供最可靠的工程服務。
-              </p>
-              <p className="text-gray-600 leading-relaxed">
-                我們秉持著「專業、穩重、創新、誠信」的經營理念，不斷追求技術突破與品質卓越，贏得眾多知名企業的信賴與支持。
-              </p>
-            </div>
-            <div className="bg-gray-50 p-12 rounded-sm">
-              <div className="grid grid-cols-2 gap-8">
-                <div className="text-center"><h4 className="text-4xl font-bold text-blue-900 mb-2">10+</h4><p className="text-xs text-gray-500 uppercase tracking-widest">年工程經驗</p></div>
-                <div className="text-center"><h4 className="text-4xl font-bold text-blue-900 mb-2">100+</h4><p className="text-xs text-gray-500 uppercase tracking-widest">成功案例</p></div>
-                <div className="text-center"><h4 className="text-4xl font-bold text-blue-900 mb-2">50+</h4><p className="text-xs text-gray-500 uppercase tracking-widest">專業團隊</p></div>
-                <div className="text-center"><h4 className="text-4xl font-bold text-blue-900 mb-2">100%</h4><p className="text-xs text-gray-500 uppercase tracking-widest">客戶滿意度</p></div>
+              <div className="space-y-6 text-gray-600 text-lg leading-relaxed">
+                <p>
+                  騏億鑫科技股份有限公司（CYH）成立於高科技產業蓬勃發展之際，專注於提供高科技廠房廠務系統工程的全方位解決方案。
+                </p>
+                <p>
+                  我們擁有一支由資深工程師與技術專家組成的核心團隊，在半導體、面板、太陽能及生技產業累積了深厚的工程實務經驗。從前期的規劃設計、材料選用、到現場的施作管理與後期的維護保養，我們始終堅持最高標準。
+                </p>
+                <p>
+                  「專業、穩重、創新、誠信」不僅是我們的經營理念，更是我們對每一位客戶的承諾。
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="org" className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <SectionHeader title="組織架構" subtitle="ORGANIZATION" />
-          <div className="mt-12 max-w-4xl mx-auto">
-            <div className="bg-blue-900 text-white p-4 rounded-sm mb-8 inline-block px-12 font-bold">董事會</div>
-            <div className="w-px h-8 bg-gray-300 mx-auto"></div>
-            <div className="bg-blue-700 text-white p-4 rounded-sm mb-8 inline-block px-12 font-bold">總經理</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {["工程部", "設計部", "業務部", "行政管理部"].map(dept => (
-                <div key={dept} className="bg-white p-6 shadow-sm border border-gray-100 font-bold text-gray-700">{dept}</div>
+            <div className="grid grid-cols-2 gap-6">
+              {[
+                { label: "專業技術", icon: <ShieldCheck size={32} /> },
+                { label: "穩健經營", icon: <TrendingUp size={32} /> },
+                { label: "創新思維", icon: <Briefcase size={32} /> },
+                { label: "誠信合作", icon: <HeartHandshake size={32} /> }
+              ].map((item, i) => (
+                <div key={i} className="bg-gray-50 p-10 rounded-sm text-center hover:bg-blue-900 hover:text-white transition-all group">
+                  <div className="text-blue-700 mb-4 group-hover:text-blue-400 transition-colors flex justify-center">{item.icon}</div>
+                  <h4 className="font-bold text-lg">{item.label}</h4>
+                </div>
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section id="history" className="py-24 bg-white">
+      {/* Asolid-tek Style Milestones - Vertical Timeline */}
+      <section id="history" className="py-32 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="沿革與發展" subtitle="MILESTONES" />
-          <div className="mt-12 space-y-12 relative before:absolute before:left-4 md:before:left-1/2 before:top-0 before:w-px before:h-full before:bg-gray-200">
+          <SectionHeader title="沿革與發展" subtitle="MILESTONES" center />
+          <div className="mt-24 relative before:absolute before:left-4 md:before:left-1/2 before:top-0 before:w-0.5 before:h-full before:bg-blue-100">
             {[
-              { year: "2025", title: "擴大營運規模", desc: "遷入新辦公大樓，並成立海外事業部。" },
-              { year: "2022", title: "技術創新突破", desc: "引進先進廠務監控系統，提升工程自動化程度。" },
-              { year: "2018", title: "獲得國際認證", desc: "通過 ISO 9001 品質管理系統認證。" },
-              { year: "2015", title: "公司成立", desc: "騏億鑫科技正式成立，專注於廠務工程設計。" },
+              { year: "2025", title: "營運新篇章", desc: "遷入全新企業總部，擴大研發中心與生產基地，並啟動海外市場布局。" },
+              { year: "2022", title: "技術領航", desc: "成功研發新一代智慧廠務監控系統，大幅提升系統穩定性與能源效率。" },
+              { year: "2019", title: "產業深耕", desc: "成為多家國際知名半導體大廠之長期合作夥伴，工程實績突破百案。" },
+              { year: "2018", title: "品質保證", desc: "通過 ISO 9001:2015 品質管理系統認證，建立標準化作業流程。" },
+              { year: "2015", title: "公司創立", desc: "騏億鑫科技正式成立，初期專注於特殊氣體管路工程設計與施作。" },
             ].map((m, i) => (
-              <div key={m.year} className={`relative flex flex-col md:flex-row gap-8 ${i % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
-                <div className="absolute left-4 md:left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-blue-700 border-4 border-white z-10"></div>
-                <div className="md:w-1/2 pl-12 md:pl-0 md:px-12">
-                  <div className={`bg-gray-50 p-8 rounded-sm ${i % 2 === 0 ? 'text-left' : 'md:text-right'}`}>
-                    <span className="text-2xl font-bold text-blue-700 mb-2 block">{m.year}</span>
-                    <h4 className="text-lg font-bold mb-2">{m.title}</h4>
-                    <p className="text-sm text-gray-500">{m.desc}</p>
+              <motion.div 
+                key={m.year}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className={cn(
+                  "relative mb-24 flex flex-col md:flex-row items-center",
+                  i % 2 === 0 ? "md:flex-row-reverse" : ""
+                )}
+              >
+                <div className="absolute left-4 md:left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white border-4 border-blue-700 z-10 flex items-center justify-center font-bold text-blue-700 shadow-lg">
+                  {m.year.slice(2)}
+                </div>
+                <div className="md:w-1/2 pl-16 md:pl-0 md:px-20">
+                  <div className={cn(
+                    "bg-white p-10 rounded-sm shadow-xl border-l-4 border-blue-700",
+                    i % 2 === 0 ? "text-left" : "md:text-right md:border-l-0 md:border-r-4"
+                  )}>
+                    <span className="text-3xl font-bold text-blue-900 mb-4 block">{m.year}</span>
+                    <h4 className="text-xl font-bold mb-4 text-gray-900">{m.title}</h4>
+                    <p className="text-gray-500 leading-relaxed">{m.desc}</p>
                   </div>
                 </div>
-              </div>
+                <div className="hidden md:block md:w-1/2"></div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="operations" className="py-24 bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="營運布局" subtitle="OPERATIONS" light />
-          <div className="grid md:grid-cols-3 gap-12 mt-12">
-            {[
-              { region: "台灣總部", city: "台中", desc: "核心研發與行政中心" },
-              { region: "北區辦事處", city: "新竹", desc: "半導體產業服務據點" },
-              { region: "南區辦事處", city: "台南", desc: "光電與生技產業服務" },
-            ].map(op => (
-              <div key={op.region} className="border border-white/10 p-10 hover:bg-white/5 transition-all">
-                <Globe2 size={40} className="text-blue-400 mb-6" />
-                <h4 className="text-xl font-bold mb-2">{op.region}</h4>
-                <p className="text-blue-300 text-sm mb-4 font-bold">{op.city}</p>
-                <p className="text-gray-400 text-sm">{op.desc}</p>
-              </div>
-            ))}
+      <section id="org" className="py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <SectionHeader title="組織架構" subtitle="ORGANIZATION" center />
+          <div className="mt-20 max-w-5xl mx-auto">
+            <div className="bg-blue-900 text-white p-6 rounded-sm mb-12 inline-block px-16 font-bold text-xl shadow-xl">董事會</div>
+            <div className="w-px h-12 bg-blue-200 mx-auto"></div>
+            <div className="bg-blue-700 text-white p-6 rounded-sm mb-12 inline-block px-16 font-bold text-xl shadow-xl">總經理室</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {["工程管理部", "技術研發部", "業務開發部", "品質保證部", "行政財務部"].map(dept => (
+                <div key={dept} className="bg-gray-50 p-8 shadow-sm border border-gray-100 font-bold text-gray-800 hover:bg-blue-50 hover:border-blue-200 transition-all">
+                  {dept}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -452,65 +538,54 @@ const ServicesPage = () => {
 
   return (
     <main>
-      <PageHero title="服務項目" subtitle="全方位的高科技廠務工程解決方案" image="https://picsum.photos/seed/services/1920/600" />
+      <PageHero title="服務項目" subtitle="全方位的高科技廠務工程解決方案" image="https://picsum.photos/seed/services-hero/1920/600" />
       
-      <section id="eng-services" className="py-24 bg-white">
+      <section id="eng-services" className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <SectionHeader title="工程服務" subtitle="ENGINEERING SERVICES" />
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10 mt-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 mt-16">
             {[
-              { title: "系統設計", desc: "專業的廠務系統規劃與細部設計。" },
-              { title: "施工管理", desc: "嚴謹的現場施工監控與進度管理。" },
-              { title: "設備安裝", desc: "精密設備的定位、安裝與調試。" },
-              { title: "管路工程", desc: "各式特殊氣體與化學品管路配置。" },
-              { title: "維護保養", desc: "定期的系統巡檢與緊急維修服務。" },
-              { title: "節能優化", desc: "既有系統的節能評估與效能提升。" },
-            ].map(s => (
-              <div key={s.title} className="flex gap-6 p-8 bg-gray-50 hover:bg-blue-50 transition-all group">
-                <div className="w-12 h-12 bg-white flex items-center justify-center rounded-sm text-blue-700 shadow-sm group-hover:bg-blue-700 group-hover:text-white transition-all"><Briefcase size={24} /></div>
-                <div><h4 className="font-bold mb-2">{s.title}</h4><p className="text-sm text-gray-500">{s.desc}</p></div>
+              { title: "特殊氣體系統", desc: "高純度氣體供應系統、氣瓶櫃(GC)及分配盤(VMB)之規劃施作。" },
+              { title: "化學供應系統", desc: "各式化學品儲存與輸送系統、自動稀釋與混合設備安裝。" },
+              { title: "純水/廢水處理", desc: "超純水系統(UPW)與製程廢水回收處理系統之設計與建造。" },
+              { title: "真空/排氣系統", desc: "製程真空系統與酸鹼、有機排氣處理工程。" },
+              { title: "自動化監控", desc: "廠務中央監控系統(FMCS)與各項製程監控介面整合。" },
+              { title: "無塵室工程", desc: "潔淨室隔間、空調及各項機電二次配工程。" },
+            ].map((s, i) => (
+              <div key={s.title} className="group p-10 bg-gray-50 hover:bg-white hover:shadow-2xl transition-all duration-500 border-b-2 border-transparent hover:border-blue-700">
+                <div className="w-16 h-16 bg-white flex items-center justify-center rounded-sm text-blue-700 shadow-sm mb-8 group-hover:bg-blue-700 group-hover:text-white transition-all">
+                  <span className="text-2xl font-bold">0{i+1}</span>
+                </div>
+                <h4 className="text-xl font-bold mb-4 text-gray-900">{s.title}</h4>
+                <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="track-record" className="py-24 bg-gray-50">
+      <section id="track-record" className="py-32 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <SectionHeader title="工程實績" subtitle="TRACK RECORD" />
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10 mt-16">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="bg-white overflow-hidden group">
-                <div className="h-64 overflow-hidden">
-                  <img src={`https://picsum.photos/seed/project${i}/800/600`} alt="Project" className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" referrerPolicy="no-referrer" />
+              <motion.div 
+                key={i} 
+                whileHover={{ y: -10 }}
+                className="bg-white overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500"
+              >
+                <div className="h-72 overflow-hidden relative group">
+                  <img src={`https://picsum.photos/seed/project-${i}/800/600`} alt="Project" className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-blue-900/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                    <button className="bg-white text-blue-900 px-6 py-2 font-bold text-xs uppercase tracking-widest">View Details</button>
+                  </div>
                 </div>
-                <div className="p-8">
-                  <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2 block">半導體廠區</span>
-                  <h4 className="font-bold text-lg mb-4">知名半導體廠特殊氣體系統工程</h4>
-                  <p className="text-sm text-gray-500 mb-6">完成高純度氣體管路配置與自動化監控系統安裝，確保製程穩定運行。</p>
-                  <button className="text-xs font-bold flex items-center gap-2 hover:gap-4 transition-all">查看案例詳情 <ArrowRight size={14} /></button>
+                <div className="p-10">
+                  <span className="text-[11px] font-bold text-blue-700 uppercase tracking-[0.2em] mb-3 block">Semiconductor Plant</span>
+                  <h4 className="font-bold text-xl mb-4 leading-tight">知名半導體大廠 12 吋廠特殊氣體系統擴建工程</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed">負責全廠特殊氣體管路配置、GC/VMB 安裝及自動化監控系統整合。</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="certs" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <SectionHeader title="專業證照與認證" subtitle="CERTIFICATIONS" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mt-12">
-            {[
-              { title: "ISO 9001", desc: "品質管理系統" },
-              { title: "ISO 14001", desc: "環境管理系統" },
-              { title: "ISO 45001", desc: "職業安全衛生" },
-              { title: "甲級電器承裝", desc: "專業工程執照" },
-            ].map(c => (
-              <div key={c.title} className="flex flex-col items-center">
-                <div className="w-32 h-32 bg-gray-100 flex items-center justify-center mb-6 rounded-full"><Award size={48} className="text-blue-700" /></div>
-                <h4 className="font-bold mb-1">{c.title}</h4>
-                <p className="text-xs text-gray-500">{c.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -519,81 +594,77 @@ const ServicesPage = () => {
   );
 };
 
+// --- News Page (Asolid-tek Album Style) ---
 const NewsPage = () => {
-  const location = useLocation();
-  
-  useEffect(() => {
-    if (location.hash) {
-      const el = document.getElementById(location.hash.slice(1));
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [location]);
+  const [filter, setFilter] = useState("全部消息");
+  const categories = ["全部消息", "各項公告", "媒體報導", "活動花絮"];
+
+  const newsItems = [
+    { id: 1, category: "各項公告", date: "2026.03.15", title: "騏億鑫科技 2026 第一季營運報告發布", image: "https://picsum.photos/seed/news1/800/600" },
+    { id: 2, category: "媒體報導", date: "2026.02.28", title: "深耕高科技廠務工程，騏億鑫獲選年度優良廠商", image: "https://picsum.photos/seed/news2/800/600" },
+    { id: 3, category: "活動花絮", date: "2026.01.10", title: "2025 年度尾牙晚會圓滿落幕，感謝全體同仁辛勞", image: "https://picsum.photos/seed/news3/800/600" },
+    { id: 4, category: "各項公告", date: "2025.12.20", title: "騏億鑫科技榮獲 ISO 45001 職業安全衛生認證", image: "https://picsum.photos/seed/news4/800/600" },
+    { id: 5, category: "媒體報導", date: "2025.11.15", title: "專訪騏億鑫總經理：以創新技術驅動綠色廠務", image: "https://picsum.photos/seed/news5/800/600" },
+    { id: 6, category: "活動花絮", date: "2025.10.05", title: "騏億鑫科技年度員工家庭日，凝聚團隊向心力", image: "https://picsum.photos/seed/news6/800/600" },
+  ];
+
+  const filteredNews = filter === "全部消息" ? newsItems : newsItems.filter(item => item.category === filter);
 
   return (
     <main>
-      <PageHero title="最新消息" subtitle="掌握騏億鑫科技的最新動態與產業資訊" image="https://picsum.photos/seed/news/1920/600" />
+      <PageHero title="最新消息" subtitle="掌握騏億鑫科技的最新動態與產業資訊" image="https://picsum.photos/seed/news-hero/1920/600" />
       
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row gap-12">
-            <div className="flex-1">
-              <div id="announcements" className="mb-20">
-                <SectionHeader title="各項公告" subtitle="ANNOUNCEMENTS" />
-                <div className="space-y-8">
-                  {[1, 2].map(i => (
-                    <div key={i} className="flex gap-8 items-start border-b border-gray-100 pb-8">
-                      <div className="text-center min-w-[80px]">
-                        <span className="text-3xl font-bold text-gray-200 block">15</span>
-                        <span className="text-xs text-gray-400 font-bold uppercase">MAR 2026</span>
-                      </div>
-                      <div>
-                        <h4 className="text-xl font-bold mb-2 hover:text-blue-700 cursor-pointer transition-colors">騏億鑫科技 2026 第一季營運報告發布</h4>
-                        <p className="text-gray-500 text-sm leading-relaxed">本公司今日公布 2026 年第一季財務報告，營收較去年同期增長 15%，展現穩健成長態勢...</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-4 mb-16 justify-center">
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                onClick={() => setFilter(cat)}
+                className={cn(
+                  "px-8 py-3 rounded-full text-sm font-bold transition-all border",
+                  filter === cat ? "bg-blue-700 border-blue-700 text-white shadow-lg" : "bg-white border-gray-200 text-gray-500 hover:border-blue-700 hover:text-blue-700"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
 
-              <div id="media" className="mb-20">
-                <SectionHeader title="媒體報導" subtitle="MEDIA COVERAGE" />
-                <div className="grid md:grid-cols-2 gap-8">
-                  {[1, 2].map(i => (
-                    <div key={i} className="bg-gray-50 p-8">
-                      <Newspaper size={32} className="text-blue-700 mb-6" />
-                      <h4 className="font-bold mb-4">深耕高科技廠務工程，騏億鑫獲選年度優良廠商</h4>
-                      <p className="text-sm text-gray-500 mb-6">根據最新產業調查報告，騏億鑫科技在半導體廠務工程領域的滿意度名列前茅...</p>
-                      <button className="text-xs font-bold text-blue-700 flex items-center gap-2">閱讀全文 <ExternalLink size={14} /></button>
+          {/* Album Style Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <AnimatePresence mode="popLayout">
+              {filteredNews.map((item) => (
+                <motion.div 
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4 }}
+                  className="group cursor-pointer"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-sm mb-6 shadow-md">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" referrerPolicy="no-referrer" />
+                    <div className="absolute top-4 left-4 bg-blue-700 text-white text-[10px] font-bold px-3 py-1 uppercase tracking-widest">
+                      {item.category}
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div id="events">
-                <SectionHeader title="活動花絮" subtitle="EVENT HIGHLIGHTS" />
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} className="aspect-square bg-gray-100 overflow-hidden relative group">
-                      <img src={`https://picsum.photos/seed/event${i}/600/600`} alt="Event" className="w-full h-full object-cover group-hover:scale-110 transition-all" referrerPolicy="no-referrer" />
-                      <div className="absolute inset-0 bg-blue-900/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                        <ImageIcon className="text-white" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-blue-900">
+                        <Search size={20} />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <aside className="w-full md:w-80">
-              <div className="bg-gray-50 p-8 sticky top-24">
-                <h4 className="font-bold mb-6 border-b border-gray-200 pb-4">分類瀏覽</h4>
-                <ul className="space-y-4 text-sm font-medium text-gray-600">
-                  <li className="hover:text-blue-700 cursor-pointer flex justify-between"><span>各項公告</span><span className="text-gray-400">(12)</span></li>
-                  <li className="hover:text-blue-700 cursor-pointer flex justify-between"><span>媒體報導</span><span className="text-gray-400">(8)</span></li>
-                  <li className="hover:text-blue-700 cursor-pointer flex justify-between"><span>活動花絮</span><span className="text-gray-400">(24)</span></li>
-                </ul>
-              </div>
-            </aside>
+                  </div>
+                  <div className="px-2">
+                    <span className="text-xs font-mono text-gray-400 mb-2 block">{item.date}</span>
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors leading-tight">
+                      {item.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </section>
@@ -601,36 +672,74 @@ const NewsPage = () => {
   );
 };
 
+// --- Investors Page (Compal Style Charts) ---
 const InvestorsPage = () => {
-  const location = useLocation();
-  
-  useEffect(() => {
-    if (location.hash) {
-      const el = document.getElementById(location.hash.slice(1));
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [location]);
+  const revenueData = [
+    { month: '2025/07', revenue: 1250, yoy: 12.5 },
+    { month: '2025/08', revenue: 1320, yoy: 15.2 },
+    { month: '2025/09', revenue: 1450, yoy: 18.1 },
+    { month: '2025/10', revenue: 1380, yoy: 10.5 },
+    { month: '2025/11', revenue: 1520, yoy: 20.2 },
+    { month: '2025/12', revenue: 1680, yoy: 25.4 },
+  ];
 
   return (
     <main>
-      <PageHero title="投資人專區" subtitle="透明、誠信、永續的投資人溝通平台" image="https://picsum.photos/seed/invest/1920/600" />
+      <PageHero title="投資人專區" subtitle="透明、誠信、永續的投資人溝通平台" image="https://picsum.photos/seed/investors-hero/1920/600" />
       
       <section id="finance" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="財務資訊" subtitle="FINANCIAL INFORMATION" />
-          <div className="grid md:grid-cols-3 gap-8 mt-12">
+          <SectionHeader title="營收概況" subtitle="REVENUE OVERVIEW" />
+          
+          {/* Compal Style Revenue Chart */}
+          <div className="bg-gray-50 p-8 md:p-12 rounded-sm shadow-sm mb-20">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">每月營收報告</h3>
+                <p className="text-sm text-gray-500">單位：新台幣百萬元</p>
+              </div>
+              <div className="flex gap-4">
+                <button className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all">
+                  <Download size={14} /> 下載數據 (Excel)
+                </button>
+                <button className="flex items-center gap-2 bg-blue-700 text-white px-4 py-2 text-xs font-bold hover:bg-blue-800 transition-all">
+                  <FileText size={14} /> 財務報告 (PDF)
+                </button>
+              </div>
+            </div>
+            
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} dy={10} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#999' }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', borderRadius: '4px' }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  />
+                  <Legend verticalAlign="top" align="right" height={36} iconType="circle" />
+                  <Bar yAxisId="left" dataKey="revenue" name="營收金額" fill="#1e3a8a" radius={[4, 4, 0, 0]} barSize={40} />
+                  <Line yAxisId="right" type="monotone" dataKey="yoy" name="年增率 (%)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
             {[
               { title: "公司概況", icon: <Building2 size={32} />, items: ["基本資料", "主要股東", "經營團隊"] },
               { title: "經營成果", icon: <TrendingUp size={32} />, items: ["每月營收報告", "季度財務報告", "年度財務報告"] },
               { title: "財務報告", icon: <FileText size={32} />, items: ["資產負債表", "綜合損益表", "現金流量表"] },
             ].map(f => (
-              <div key={f.title} className="bg-gray-50 p-10">
-                <div className="text-blue-700 mb-6">{f.icon}</div>
-                <h4 className="text-xl font-bold mb-6">{f.title}</h4>
-                <ul className="space-y-4">
+              <div key={f.title} className="bg-white p-10 border border-gray-100 hover:shadow-xl transition-all group">
+                <div className="text-blue-700 mb-8 group-hover:scale-110 transition-transform">{f.icon}</div>
+                <h4 className="text-xl font-bold mb-8 text-gray-900">{f.title}</h4>
+                <ul className="space-y-5">
                   {f.items.map(item => (
-                    <li key={item} className="flex items-center justify-between text-sm text-gray-600 hover:text-blue-700 cursor-pointer group">
-                      {item} <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 transition-all" />
+                    <li key={item} className="flex items-center justify-between text-sm font-medium text-gray-500 hover:text-blue-700 cursor-pointer group/item">
+                      {item} <ChevronRight size={16} className="opacity-0 group-hover/item:opacity-100 group-hover/item:translate-x-1 transition-all" />
                     </li>
                   ))}
                 </ul>
@@ -639,105 +748,55 @@ const InvestorsPage = () => {
           </div>
         </div>
       </section>
-
-      <section id="shareholders" className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="股東專欄" subtitle="SHAREHOLDER CORNER" />
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-            {[
-              "股東服務", "股東會資訊", "股東會年報", "公開說明書", "股利資訊", "股價資訊"
-            ].map(s => (
-              <div key={s} className="bg-white p-8 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group">
-                <span className="font-bold text-gray-700">{s}</span>
-                <div className="w-8 h-8 bg-blue-50 flex items-center justify-center rounded-full text-blue-700 group-hover:bg-blue-700 group-hover:text-white transition-all"><FileText size={16} /></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="governance" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <SectionHeader title="公司治理" subtitle="CORPORATE GOVERNANCE" />
-          <div className="grid md:grid-cols-2 gap-12 mt-12">
-            {[
-              { title: "規章辦法", desc: "包含公司章程、取得或處分資產處理程序等。" },
-              { title: "董事會", desc: "董事會成員簡介、運作情形及決議事項。" },
-              { title: "法說會", desc: "歷年法人說明會簡報與影音資訊。" },
-              { title: "功能性委員會", desc: "審計委員會與薪酬委員會之運作。" },
-              { title: "內部稽核", desc: "內部稽核組織及年度稽核計畫執行情形。" },
-              { title: "資訊安全管理", desc: "資安政策、管理架構與推動情形。" },
-            ].map(g => (
-              <div key={g.title} className="flex gap-8 items-start p-8 border border-gray-100 hover:border-blue-200 transition-all">
-                <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><ShieldCheck size={24} /></div>
-                <div><h4 className="font-bold mb-2">{g.title}</h4><p className="text-sm text-gray-500 leading-relaxed">{g.desc}</p></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </main>
   );
 };
 
-const ContactPage = () => {
-  return (
-    <main>
-      <PageHero title="聯絡我們" subtitle="期待與您的合作，為您提供最專業的服務" image="https://picsum.photos/seed/contact/1920/600" />
-      
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-20">
-            <div>
-              <SectionHeader title="聯絡資訊" subtitle="CONTACT INFO" />
-              <div className="space-y-10 mt-12">
-                <div className="flex gap-6">
-                  <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><MapPin size={24} /></div>
-                  <div><h4 className="font-bold mb-1">公司地址</h4><p className="text-gray-500">台中市大雅區中清路四段... (範例地址)</p></div>
-                </div>
-                <div className="flex gap-6">
-                  <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><Phone size={24} /></div>
-                  <div><h4 className="font-bold mb-1">電話號碼</h4><p className="text-gray-500">04-25670993</p></div>
-                </div>
-                <div className="flex gap-6">
-                  <div className="w-12 h-12 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><Mail size={24} /></div>
-                  <div><h4 className="font-bold mb-1">電子郵件</h4><p className="text-gray-500">cyh.mis@cyhco.com.tw</p></div>
-                </div>
-              </div>
-              
-              <div className="mt-16 p-8 bg-gray-50 rounded-sm">
-                <h4 className="font-bold mb-4 flex items-center gap-2"><Calendar size={20} className="text-blue-700" /> 服務時間</h4>
-                <p className="text-sm text-gray-600">週一至週五 08:30 - 17:30</p>
-                <p className="text-sm text-gray-600 mt-2">週六、週日及國定假日休息</p>
-              </div>
-            </div>
+// Re-importing ComposedChart since it was used but not imported
+import { ComposedChart } from 'recharts';
 
-            <div>
-              <SectionHeader title="線上諮詢" subtitle="ONLINE INQUIRY" />
-              <form className="mt-12 space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">聯絡人姓名</label><input type="text" className="w-full bg-gray-50 border border-gray-200 p-4 focus:outline-none focus:border-blue-700 transition-all" placeholder="請輸入姓名" /></div>
-                  <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">聯絡電話</label><input type="text" className="w-full bg-gray-50 border border-gray-200 p-4 focus:outline-none focus:border-blue-700 transition-all" placeholder="請輸入電話" /></div>
-                </div>
-                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">電子郵件</label><input type="email" className="w-full bg-gray-50 border border-gray-200 p-4 focus:outline-none focus:border-blue-700 transition-all" placeholder="請輸入 Email" /></div>
-                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">諮詢項目</label>
-                  <select className="w-full bg-gray-50 border border-gray-200 p-4 focus:outline-none focus:border-blue-700 transition-all">
-                    <option>工程服務諮詢</option>
-                    <option>材料採購諮詢</option>
-                    <option>投資人關係</option>
-                    <option>其他</option>
-                  </select>
-                </div>
-                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">訊息內容</label><textarea className="w-full bg-gray-50 border border-gray-200 p-4 h-40 focus:outline-none focus:border-blue-700 transition-all" placeholder="請輸入您的訊息內容"></textarea></div>
-                <button type="submit" className="w-full bg-blue-900 text-white font-bold py-5 hover:bg-blue-800 transition-all flex items-center justify-center gap-2">送出訊息 <ArrowRight size={18} /></button>
-              </form>
+const ContactPage = () => (
+  <main>
+    <PageHero title="聯絡我們" subtitle="期待與您的合作，為您提供最專業的服務" image="https://picsum.photos/seed/contact-hero/1920/600" />
+    <section className="py-32 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid lg:grid-cols-2 gap-24">
+          <div>
+            <SectionHeader title="聯絡資訊" subtitle="CONTACT INFO" />
+            <div className="space-y-12 mt-16">
+              <div className="flex gap-8 items-start">
+                <div className="w-14 h-14 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><MapPin size={28} /></div>
+                <div><h4 className="font-bold text-xl mb-2">公司地址</h4><p className="text-gray-500 leading-relaxed">台中市大雅區中清路四段... (範例地址)</p></div>
+              </div>
+              <div className="flex gap-8 items-start">
+                <div className="w-14 h-14 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><Phone size={28} /></div>
+                <div><h4 className="font-bold text-xl mb-2">電話號碼</h4><p className="text-gray-500 leading-relaxed">04-25670993</p></div>
+              </div>
+              <div className="flex gap-8 items-start">
+                <div className="w-14 h-14 bg-blue-50 flex items-center justify-center rounded-sm text-blue-700 shrink-0"><Mail size={28} /></div>
+                <div><h4 className="font-bold text-xl mb-2">電子郵件</h4><p className="text-gray-500 leading-relaxed">cyh.mis@cyhco.com.tw</p></div>
+              </div>
             </div>
           </div>
+          <div className="bg-gray-50 p-12 md:p-16 rounded-sm">
+            <SectionHeader title="線上諮詢" subtitle="ONLINE INQUIRY" />
+            <form className="mt-12 space-y-8">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div><label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Name</label><input type="text" className="w-full bg-white border border-gray-200 p-5 focus:outline-none focus:border-blue-700 transition-all" placeholder="您的姓名" /></div>
+                <div><label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Phone</label><input type="text" className="w-full bg-white border border-gray-200 p-5 focus:outline-none focus:border-blue-700 transition-all" placeholder="您的電話" /></div>
+              </div>
+              <div><label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Email</label><input type="email" className="w-full bg-white border border-gray-200 p-5 focus:outline-none focus:border-blue-700 transition-all" placeholder="您的電子郵件" /></div>
+              <div><label className="block text-xs font-bold text-gray-400 uppercase mb-3 tracking-widest">Message</label><textarea className="w-full bg-white border border-gray-200 p-5 h-40 focus:outline-none focus:border-blue-700 transition-all" placeholder="請輸入您的訊息內容"></textarea></div>
+              <button type="submit" className="w-full bg-blue-900 text-white font-bold py-6 hover:bg-blue-800 transition-all flex items-center justify-center gap-3 shadow-xl">
+                送出訊息 <ArrowRight size={20} />
+              </button>
+            </form>
+          </div>
         </div>
-      </section>
-    </main>
-  );
-};
+      </div>
+    </section>
+  </main>
+);
 
 // --- Main App ---
 
@@ -750,7 +809,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/services" element={<ServicesPage />} />
-          <Route path="/news" element={<NewsSectionPage />} />
+          <Route path="/news" element={<NewsPage />} />
           <Route path="/investors" element={<InvestorsPage />} />
           <Route path="/contact" element={<ContactPage />} />
         </Routes>
@@ -759,6 +818,3 @@ export default function App() {
     </Router>
   );
 }
-
-// Helper to fix the missing NewsSectionPage component
-const NewsSectionPage = () => <NewsPage />;
